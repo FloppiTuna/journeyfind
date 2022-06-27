@@ -1,0 +1,14 @@
+{
+  "name": "journeyfind",
+  "version": "1.0.0",
+  "description": "Know when Journey is playing on Houston's Eagle",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.11.0",
+    "winston": "^3.8.0"
+  },
+  "type": "module"
+}
