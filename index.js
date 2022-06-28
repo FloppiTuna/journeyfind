@@ -51,15 +51,15 @@ tree.focus()
 
 // Define keyboard controls
 screen.key(['escape', 'q', 'C-c'], function (ch, key) {
-    fs.readdir('./cache', (err, files) => {
-        if (err) throw err;
+    // Clear the cache folder (holds the cover art images)
+    fs.readdir('./cache/', (err, files) => {
       
         for (const file of files) {
-          fs.unlink(path.join(directory, file), err => {
+          fs.unlink(path.join('./cache/', file), err => {
             if (err) throw err;
           });
         }
-      });
+    });
     return process.exit(0)
 });
 
