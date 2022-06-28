@@ -5,11 +5,10 @@ let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the
 let artistName = "The Outfield" // The artist to detect.
 let apiKey = "kglk" // LDRHub API Key. Usually the station's callsign.
 let matches = 0
+
 // Make UI
 import blessed from 'blessed'
 import contrib from 'blessed-contrib'
-import fs from 'fs'
-import jimp from 'jimp'
 
 let screen = blessed.screen()
 let grid = new contrib.grid({rows: 2, cols: 2, screen: screen})
@@ -34,7 +33,7 @@ var table = grid.set(0, 1, 1, 1, contrib.table, { keys: true
     , columnSpacing: 10 //in chars
     , columnWidth: [16, 12, 12] /*in chars*/ })
 
-var markdown = grid.set(1, 0, 1, 1, contrib.markdown)
+var markdown = grid.set(1, 0, 1, 1, contrib.markdown, { label: 'Song Details'})
 
 //allow control the table with the keyboard
 table.focus()
@@ -69,7 +68,7 @@ function loop() {
             // Check if now_playing is null (an ad may be playing, or the station is processing new player data)
             if (now_playing === null) {
                 log.log('\x1b[33mAn ad is playing, or the station is still processing. Waiting 15 seconds...')
-                markdown.setMarkdown(`# Currently Playing Song \n\x1b[5m\x1b[33mStation is processing`)
+                markdown.setMarkdown(`\x1b[5m\x1b[33mStation is processing`)
                 // Wait 10 more seconds before retrying
                 pollingRate = 15000
                 return loop()
@@ -87,7 +86,7 @@ function loop() {
             }
             
             // Set the details box.
-            markdown.setMarkdown(`# Currently Playing Song \n${now_playing.title} - ${now_playing.artist} in ${now_playing.album_name}`)
+            markdown.setMarkdown(`${now_playing.title} - ${now_playing.artist} in ${now_playing.album_name}`)
             
             // Wait for the song to finish playing, and then scan again when the next one starts.
             log.log(`\x1b[35mWaiting ${now_playing.seconds_left * 1000} ms for the song to finish playing.`)
