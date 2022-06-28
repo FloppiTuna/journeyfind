@@ -50,17 +50,16 @@ var songlog = grid.set(1, 1, 1, 1, contrib.log,
 tree.focus()
 
 // Define keyboard controls
-screen.key(['escape', 'q', 'C-c'], function (ch, key) {
+screen.key(['escape', 'q', 'C-c'], async function (ch, key) {
     // Clear the cache folder (holds the cover art images)
     fs.readdir('./cache/', (err, files) => {
-      
         for (const file of files) {
           fs.unlink(path.join('./cache/', file), err => {
             if (err) throw err;
+            return process.exit(0)
           });
         }
     });
-    return process.exit(0)
 });
 
 screen.title = 'JourneyJourney - q to quit'
