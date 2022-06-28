@@ -3,8 +3,7 @@ import axios from "axios";
 // Configuration
 let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the time remaining before the next song is played.
 let apiKey = "kglk" // LDRHub API Key. Usually the station's callsign.
-let matches = 0
-let artistList = []
+let artistList = {}
 
 // Make UI
 import blessed from 'blessed'
@@ -25,46 +24,61 @@ var log = grid.set(0, 0, 1, 1, contrib.log,
         , label: 'Log'
     })
 
-var tree = grid.set(0, 1, 1, 1, contrib.tree, { bg: 'green', label: 'Song List' })
+var tree = grid.set(0, 1, 1, 1, contrib.tree, { fg: 'green', label: 'Song List' })
 
 var markdown = grid.set(1, 0, 1, 1, contrib.markdown, { label: 'Song Details' })
 
+var songlog = grid.set(1, 1, 1, 1, contrib.log,
+    {
+        style:
+        {
+            text: "green"
+            , baseline: "black"
+        }
+        , xLabelPadding: 3
+        , xPadding: 5
+        , label: 'Song History'
+    })
+
 //allow control the table with the keyboard
 tree.focus()
-
-// Set some default data
-tree.setData(
-    {
-        extended: true,
-        children: {
-            [apiKey]: {
-                children: {
-                    'JOURNEY': {
-                        children: {
-                            'Seperate Ways': { name: 'Seperate Ways' }
-                        }
-                    }
-                }
-            }
-        }
-    })
 
 screen.key(['escape', 'q', 'C-c'], function (ch, key) {
     log.log(`Saving results.`)
     return process.exit(0)
 });
 
-
 screen.render()
 
 log.log('\x1b[36m=== JourneyFind ===')
 log.log(`\x1b[36m=== Started at \x1b[1m${new Date().toISOString()}\x1b[0m\x1b[36m ===`)
 log.log(`\x1b[36m=== Station: \x1b[1m${apiKey}\x1b[0m\x1b[36m ===`);
+songlog.log(`\x1b[36m=== Beginning of History ===`)
 
-// Function for looping
+// Functions
+function updateTree() {
+    tree.setData(
+        {
+            extended: true,
+            children: {
+                [apiKey]: {
+                    extended: true,
+                    children: artistList
+                    // === Format ===
+                    // 'JOURNEY': {
+                    //     children: {
+                    //         'Seperate Ways': { name: 'Seperate Ways' }
+                    //     }
+                    // }
+                }
+            }
+        }
+    )
+}
+
 function loop() {
     setTimeout(async () => {
-        log.log('\x1b[90mFetching current song......')
+        log.log('\x1b[90mFetching current song...')
         await axios.get(`https://api.ldrhub.com/2/?key=${apiKey}&method=Station.Engage.NowPlaying`)
             .then(async (r) => {
                 // Not needed but makes this all cleaner
@@ -77,34 +91,32 @@ function loop() {
                     pollingRate = 15000
                     return loop()
                 }
-
-                // If we're at this point; compare playing artist to target.
-                artistList.push([now_playing.artist])
-                await table.setData(
-                    {
-                        headers: ['Artist', 'Matches']
-                        , data: artistList
-                    })
-                // if (now_playing.artist === artistName) {
-                //     log.log(`\x1b[32mMatch detected! ${artistName} is currently playing on ${apiKey}!`);
-                //     await table.setData(
-                //         { headers: ['Artist', 'Matches']
-                //         , data:
-                //             [ [artistName, matches+1]]})
-                // } else {
-                //     log.log(`\x1b[33m${artistName} is not playing on ${apiKey}; ${now_playing.artist} is.`);
-                // }
-
+                // Create a skeleton object for the artist in case it does not exist yet
+                if (!artistList[now_playing.artist]) {
+                    artistList[now_playing.artist] = {
+                        children: {}
+                    }
+                }
+                Object.assign(artistList[now_playing.artist].children, {
+                    [now_playing.system_timestamp]: { name: now_playing.title }
+                })
+                updateTree();
                 // Set the details box.
                 markdown.setMarkdown(`${now_playing.title} - ${now_playing.artist} in ${now_playing.album_name}`)
-
+                // Add song to the history log
+                var songPlayedTimestamp = new Date(now_playing.system_timestamp * 1000).toLocaleString();
+                songlog.log(`\x1b[32m[\x1b[1m${songPlayedTimestamp}\x1b[0m\x1b[32m] - ${now_playing.title} - ${now_playing.artist}`)
                 // Wait for the song to finish playing, and then scan again when the next one starts.
                 log.log(`\x1b[35mWaiting ${now_playing.seconds_left * 1000} ms for the song to finish playing.`)
                 pollingRate = now_playing.seconds_left * 1000
                 loop()
             })
             .catch((e) => {
-                log.log(`\x1b[31mFailed to get the current playing song: ${e}`)
+                log.log(`\x1b[31mFailed to get the current playing song:`)
+                log.log(`\x1b[31m${e}`)
+                log.log(`\x1b[31mWaiting 30 seconds before trying again.`)
+                pollingRate = 30000
+                loop()
             })
     }, pollingRate)
 }
