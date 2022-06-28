@@ -1,5 +1,7 @@
 import axios from "axios";
-
+import fs from "fs";
+import jimp from 'jimp'
+import path from "path";
 // Configuration
 let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the time remaining before the next song is played.
 let apiKey = "kglk" // LDRHub API Key. Usually the station's callsign.
@@ -26,7 +28,11 @@ var log = grid.set(0, 0, 1, 1, contrib.log,
 
 var tree = grid.set(0, 1, 1, 1, contrib.tree, { fg: 'green', label: 'Song List' })
 
-var markdown = grid.set(1, 0, 1, 1, contrib.markdown, { label: 'Song Details' })
+var coverart = grid.set(1, 0, 1, 1, contrib.picture, {
+    file: './assets/missing_cover.png',
+    cols: 54,
+    
+})
 
 var songlog = grid.set(1, 1, 1, 1, contrib.log,
     {
@@ -43,11 +49,21 @@ var songlog = grid.set(1, 1, 1, 1, contrib.log,
 //allow control the table with the keyboard
 tree.focus()
 
+// Define keyboard controls
 screen.key(['escape', 'q', 'C-c'], function (ch, key) {
-    log.log(`Saving results.`)
+    fs.readdir('./cache', (err, files) => {
+        if (err) throw err;
+      
+        for (const file of files) {
+          fs.unlink(path.join(directory, file), err => {
+            if (err) throw err;
+          });
+        }
+      });
     return process.exit(0)
 });
 
+screen.title = 'JourneyJourney - q to quit'
 screen.render()
 
 log.log('\x1b[36m=== JourneyFind ===')
@@ -76,6 +92,25 @@ function updateTree() {
     )
 }
 
+async function setCoverArt(artUrl, id) {
+    // The cover art URLs that LDRHub provides are in JPG, which blessed doesn't seem to like.
+    // We need to convert them to PNG before we can display them.
+    // The following code will:
+    //  - Download the cover art from LDRHub (500x500 atm)
+    //  - Converts the downloaded image data to PNG
+    //  - Recreates the cover art box with the new cover art file
+    await jimp.read(artUrl)
+        .then(cover => {
+            cover.write(`./cache/${id}.png`, (err, data) => {
+                coverart = grid.set(1, 0, 1, 1, contrib.picture, {
+                    file: `./cache/${id}.png`,
+                    cols: 54
+                })
+                screen.render(); // Rerender the screen, because it doesn't rerender itself.
+            }); // save
+        })
+}
+
 function loop() {
     setTimeout(async () => {
         log.log('\x1b[90mFetching current song...')
@@ -86,7 +121,6 @@ function loop() {
                 // Check if now_playing is null (an ad may be playing, or the station is processing new player data)
                 if (now_playing === null) {
                     log.log('\x1b[33mAn ad is playing, or the station is still processing. Waiting 15 seconds...')
-                    markdown.setMarkdown(`\x1b[5m\x1b[33mStation is processing`)
                     // Wait 10 more seconds before retrying
                     pollingRate = 15000
                     return loop()
@@ -101,11 +135,11 @@ function loop() {
                     [now_playing.system_timestamp]: { name: now_playing.title }
                 })
                 updateTree();
-                // Set the details box.
-                markdown.setMarkdown(`${now_playing.title} - ${now_playing.artist} in ${now_playing.album_name}`)
+
                 // Add song to the history log
                 var songPlayedTimestamp = new Date(now_playing.system_timestamp * 1000).toLocaleString();
                 songlog.log(`\x1b[32m[\x1b[1m${songPlayedTimestamp}\x1b[0m\x1b[32m] - ${now_playing.title} - ${now_playing.artist}`)
+                setCoverArt(now_playing.album_art, now_playing.id);
                 // Wait for the song to finish playing, and then scan again when the next one starts.
                 log.log(`\x1b[35mWaiting ${now_playing.seconds_left * 1000} ms for the song to finish playing.`)
                 pollingRate = now_playing.seconds_left * 1000
