@@ -31,7 +31,9 @@ var tree = grid.set(0, 1, 1, 1, contrib.tree, { fg: 'green', label: 'Song List' 
 var coverart = grid.set(1, 0, 1, 1, contrib.picture, {
     file: './assets/missing_cover.png',
     cols: 54,
-    
+    onReady: function () {
+        screen.render()
+    }
 })
 
 var songlog = grid.set(1, 1, 1, 1, contrib.log,
@@ -100,12 +102,14 @@ async function setCoverArt(artUrl, id) {
     //  - Recreates the cover art box with the new cover art file
     await jimp.read(artUrl)
         .then(cover => {
-            cover.write(`./cache/${id}.png`, (err, data) => {
-                coverart = grid.set(1, 0, 1, 1, contrib.picture, {
+            cover.write(`./cache/${id}.png`, () => {
+                return coverart = grid.set(1, 0, 1, 1, contrib.picture, {
                     file: `./cache/${id}.png`,
-                    cols: 54
+                    cols: 54,
+                    onReady: function () {
+                        screen.render()
+                    }
                 })
-                screen.render(); // Rerender the screen, because it doesn't rerender itself.
             }); // save
         })
 }
