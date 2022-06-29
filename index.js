@@ -2,8 +2,11 @@ import axios from "axios";
 import fs from "fs";
 import jimp from 'jimp'
 import path from "path";
+import { fromJSON, toJSON } from "flatted"
+
 // Configuration
 let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the time remaining before the next song is played.
+let extraPollingDelay = 8000 // Extra time to add onto the timer for pulling the next song. Hacky solution to prevent songs from duping in the tree.
 let apiKey = "kglk" // LDRHub API Key. Usually the station's callsign.
 let artistList = {}
 
@@ -64,7 +67,24 @@ screen.key(['escape', 'q', 'C-c'], async function (ch, key) {
     });
 });
 
-screen.title = 'JourneyJourney - q to quit'
+// screen.key(['s'], async function (ch, key) {
+//     // This key will save the current tree data to a JSON file.
+//     let jsonified = toJSON(artistList)
+//     let saveable = JSON.stringify(jsonified, null, 2);
+//     fs.writeFileSync('tree.json', saveable);
+//     log.log(`\x1b[32mTree saved to tree.json`);
+// });
+
+// screen.key(['i'], async function (ch, key) {
+//     // This key will import a tree data from a JSON file.
+//     let source = fs.readFileSync('tree.json');
+//     let jsonified = JSON.parse(source);
+//     let importable = fromJSON(jsonified)
+//     artistList = {}
+//     screen.render();
+// });
+
+screen.title = 'JourneyJourney - s/i to save/import tree, q to quit'
 screen.render()
 
 log.log('\x1b[36m=== JourneyFind ===')
@@ -144,8 +164,8 @@ function loop() {
                 songlog.log(`\x1b[32m[\x1b[1m${songPlayedTimestamp}\x1b[0m\x1b[32m] - ${now_playing.title} - ${now_playing.artist}`)
                 setCoverArt(now_playing.album_art, now_playing.id);
                 // Wait for the song to finish playing, and then scan again when the next one starts.
-                log.log(`\x1b[35mWaiting ${now_playing.seconds_left * 1000} ms for the song to finish playing.`)
-                pollingRate = now_playing.seconds_left * 1000
+                log.log(`\x1b[35mWaiting ${now_playing.seconds_left * 1000} (+ ${extraPollingDelay}) ms for the song to finish playing.`)
+                pollingRate = (now_playing.seconds_left * 1000) + extraPollingDelay
                 loop()
             })
             .catch((e) => {
