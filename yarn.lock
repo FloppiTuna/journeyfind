@@ -385,9 +385,10 @@ base64-js@^1.3.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-"blessed-contrib@https://github.com/IntelligentPickle/blessed-contrib.git":
+blessed-contrib@^4.11.0:
   version "4.11.0"
-  resolved "https://github.com/IntelligentPickle/blessed-contrib.git#ecd48d98c4c63a9cacfe20f68f568b3321ec46f5"
+  resolved "https://registry.yarnpkg.com/blessed-contrib/-/blessed-contrib-4.11.0.tgz#4a5fa101a5eb24c88485e92d01d4bf97f1c380bf"
+  integrity sha512-P00Xji3xPp53+FdU9f74WpvnOAn/SS0CKLy4vLAf5Ps7FGDOTY711ruJPZb3/7dpFuP+4i7f4a/ZTZdLlKG9WA==
   dependencies:
     ansi-term ">=0.0.2"
     chalk "^1.1.0"
