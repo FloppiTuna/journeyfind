@@ -2,95 +2,14 @@ import axios from "axios";
 import fs from "fs";
 import jimp from 'jimp'
 import path from "path";
-import { fromJSON, toJSON } from "flatted"
+import blessed from 'blessed'
+import contrib from 'blessed-contrib'
 
 // Configuration
 let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the time remaining before the next song is played.
 let extraPollingDelay = 8000 // Extra time to add onto the timer for pulling the next song. Hacky solution to prevent songs from duping in the tree.
 let apiKey = "kglk" // LDRHub API Key. Usually the station's callsign.
 let artistList = {}
-
-// Make UI
-import blessed from 'blessed'
-import contrib from 'blessed-contrib'
-
-let screen = blessed.screen()
-let grid = new contrib.grid({ rows: 2, cols: 2, screen: screen })
-
-var log = grid.set(0, 0, 1, 1, contrib.log,
-    {
-        style:
-        {
-            text: "green"
-            , baseline: "black"
-        }
-        , xLabelPadding: 3
-        , xPadding: 5
-        , label: 'Log'
-    })
-
-var tree = grid.set(0, 1, 1, 1, contrib.tree, { fg: 'green', label: 'Song List' })
-
-var coverart = grid.set(1, 0, 1, 1, contrib.picture, {
-    file: './assets/missing_cover.png',
-    cols: 54,
-    onReady: function () {
-        screen.render()
-    }
-})
-
-var songlog = grid.set(1, 1, 1, 1, contrib.log,
-    {
-        style:
-        {
-            text: "green"
-            , baseline: "black"
-        }
-        , xLabelPadding: 3
-        , xPadding: 5
-        , label: 'Song History'
-    })
-
-//allow control the table with the keyboard
-tree.focus()
-
-// Define keyboard controls
-screen.key(['escape', 'q', 'C-c'], async function (ch, key) {
-    // Clear the cache folder (holds the cover art images)
-    fs.readdir('./cache/', (err, files) => {
-        for (const file of files) {
-          fs.unlink(path.join('./cache/', file), err => {
-            if (err) throw err;
-            return process.exit(0)
-          });
-        }
-    });
-});
-
-// screen.key(['s'], async function (ch, key) {
-//     // This key will save the current tree data to a JSON file.
-//     let jsonified = toJSON(artistList)
-//     let saveable = JSON.stringify(jsonified, null, 2);
-//     fs.writeFileSync('tree.json', saveable);
-//     log.log(`\x1b[32mTree saved to tree.json`);
-// });
-
-// screen.key(['i'], async function (ch, key) {
-//     // This key will import a tree data from a JSON file.
-//     let source = fs.readFileSync('tree.json');
-//     let jsonified = JSON.parse(source);
-//     let importable = fromJSON(jsonified)
-//     artistList = {}
-//     screen.render();
-// });
-
-screen.title = 'JourneyJourney - s/i to save/import tree, q to quit'
-screen.render()
-
-log.log('\x1b[36m=== JourneyFind ===')
-log.log(`\x1b[36m=== Started at \x1b[1m${new Date().toISOString()}\x1b[0m\x1b[36m ===`)
-log.log(`\x1b[36m=== Station: \x1b[1m${apiKey}\x1b[0m\x1b[36m ===`);
-songlog.log(`\x1b[36m=== Beginning of History ===`)
 
 // Functions
 function updateTree() {
@@ -178,4 +97,74 @@ function loop() {
     }, pollingRate)
 }
 
+// Create the screen, and the grid for it
+let screen = blessed.screen()
+let grid = new contrib.grid({ rows: 2, cols: 2, screen: screen })
+
+// Build the elements for the UI:
+//  - The log, for displaying status messages.
+//  - The tree, for displaying the artist list.
+//  - The cover art box (picture), for displaying the cover art in ASCII.
+//  - The song log, for displaying the song history.
+var log = grid.set(0, 0, 1, 1, contrib.log,
+    {
+        style:
+        {
+            text: "green"
+            , baseline: "black"
+        }
+        , xLabelPadding: 3
+        , xPadding: 5
+        , label: 'Log'
+})
+var tree = grid.set(0, 1, 1, 1, contrib.tree, { fg: 'green', label: 'Song List' })
+var coverart = grid.set(1, 0, 1, 1, contrib.picture, {
+    file: './assets/missing_cover.png',
+    cols: 54,
+    onReady: function () {
+        screen.render()
+    }
+})
+var songlog = grid.set(1, 1, 1, 1, contrib.log,
+    {
+        style:
+        {
+            text: "green"
+            , baseline: "black"
+        }
+        , xLabelPadding: 3
+        , xPadding: 5
+        , label: 'Song History'
+})
+
+// Make the tree interactive.
+tree.focus()
+
+// Define interactive keyboard controls.
+
+// Keyboard control for quitting.
+screen.key(['escape', 'q', 'C-c'], async function (ch, key) {
+    // Clear the cache folder (holds the cover art images)
+    fs.readdir('./cache/', (err, files) => {
+        for (const file of files) {
+          fs.unlink(path.join('./cache/', file), err => {
+            if (err) throw err;
+          });
+        }
+    });
+    return process.exit(0)
+});
+
+// Set the window title, and render!
+screen.title = 'JourneyJourney - s/i to save/import tree, q to quit'
+screen.render()
+
+// Print a few startup messages to the LOG box.
+log.log('\x1b[36m=== JourneyFind ===')
+log.log(`\x1b[36m=== Started at \x1b[1m${new Date().toISOString()}\x1b[0m\x1b[36m ===`)
+log.log(`\x1b[36m=== Station: \x1b[1m${apiKey}\x1b[0m\x1b[36m ===`);
+// Additionally, a message indicating the beginning of the song history.
+songlog.log(`\x1b[36m=== Beginning of History ===`)
+
+// Start the loop.
 loop()
