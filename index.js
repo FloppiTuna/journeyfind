@@ -158,10 +158,10 @@ screen.key(['q'], async function (ch, key) {
         for (const file of files) {
             fs.unlink(path.join('./cache/', file), err => {
                 if (err) throw err;
+                return process.exit(0)
             });
         }
     });
-    return process.exit(0)
 });
 
 // Keyboard control for clearing the logs.
