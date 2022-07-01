@@ -142,8 +142,17 @@ tree.focus()
 
 // Define interactive keyboard controls.
 
+// Keyboard control for showing help information.
+screen.key(['h'], async function (ch, key) {
+    log.log('\x1b[36m=== JourneyJourney Help ===')
+    log.log(`\x1b[36m=== q - exit ===`)
+    log.log(`\x1b[36m=== c - clear logs ===`);
+    log.log(`\x1b[36m=== shift+c - clear tree ===`);
+    log.log(`\x1b[36m=== h - show this menu ===`);
+});
+
 // Keyboard control for quitting.
-screen.key(['escape', 'q', 'C-c'], async function (ch, key) {
+screen.key(['q'], async function (ch, key) {
     // Clear the cache folder (holds the cover art images)
     fs.readdir('./cache/', (err, files) => {
         for (const file of files) {
@@ -155,12 +164,53 @@ screen.key(['escape', 'q', 'C-c'], async function (ch, key) {
     return process.exit(0)
 });
 
+// Keyboard control for clearing the logs.
+screen.key(['c'], async function (ch, key) {
+    // Recreate log and songlog objects
+    log = grid.set(0, 0, 1, 1, contrib.log,
+        {
+            style:
+            {
+                text: "green"
+                , baseline: "black"
+            }
+            , xLabelPadding: 3
+            , xPadding: 5
+            , label: 'Log'
+    })
+    songlog = grid.set(1, 1, 1, 1, contrib.log,
+        {
+            style:
+            {
+                text: "green"
+                , baseline: "black"
+            }
+            , xLabelPadding: 3
+            , xPadding: 5
+            , label: 'Song History'
+    })
+    return screen.render();
+});
+
+// Keyboard control for clearing the tree.
+screen.key(['S-c'], async function (ch, key) {
+    artistList = {}
+    updateTree();
+    return screen.render();
+});
+
+
+
+
+
+
+
 // Set the window title, and render!
-screen.title = 'JourneyJourney - s/i to save/import tree, q to quit'
+screen.title = 'JourneyJourney'
 screen.render()
 
 // Print a few startup messages to the LOG box.
-log.log('\x1b[36m=== JourneyFind ===')
+log.log('\x1b[36m=== JourneyJourney - Press h for help ===')
 log.log(`\x1b[36m=== Started at \x1b[1m${new Date().toISOString()}\x1b[0m\x1b[36m ===`)
 log.log(`\x1b[36m=== Station: \x1b[1m${apiKey}\x1b[0m\x1b[36m ===`);
 // Additionally, a message indicating the beginning of the song history.
