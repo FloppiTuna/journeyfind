@@ -42,7 +42,7 @@ async function setCoverArt(artUrl, id) {
     await jimp.read(artUrl)
         .then(cover => {
             cover.write(`./cache/${id}.png`, () => {
-                return coverart = grid.set(1, 0, 1, 1, contrib.picture, {
+                return coverart.setImage({
                     file: `./cache/${id}.png`,
                     cols: 54,
                     onReady: function () {
@@ -116,7 +116,7 @@ var log = grid.set(0, 0, 1, 1, contrib.log,
         , xLabelPadding: 3
         , xPadding: 5
         , label: 'Log'
-})
+    })
 var tree = grid.set(0, 1, 1, 1, contrib.tree, { fg: 'green', label: 'Song List' })
 var coverart = grid.set(1, 0, 1, 1, contrib.picture, {
     file: './assets/missing_cover.png',
@@ -135,7 +135,7 @@ var songlog = grid.set(1, 1, 1, 1, contrib.log,
         , xLabelPadding: 3
         , xPadding: 5
         , label: 'Song History'
-})
+    })
 
 // Make the tree interactive.
 tree.focus()
@@ -156,9 +156,9 @@ screen.key(['q'], async function (ch, key) {
     // Clear the cache folder (holds the cover art images)
     fs.readdir('./cache/', (err, files) => {
         for (const file of files) {
-          fs.unlink(path.join('./cache/', file), err => {
-            if (err) throw err;
-          });
+            fs.unlink(path.join('./cache/', file), err => {
+                if (err) throw err;
+            });
         }
     });
     return process.exit(0)
@@ -177,7 +177,7 @@ screen.key(['c'], async function (ch, key) {
             , xLabelPadding: 3
             , xPadding: 5
             , label: 'Log'
-    })
+        })
     songlog = grid.set(1, 1, 1, 1, contrib.log,
         {
             style:
@@ -188,7 +188,7 @@ screen.key(['c'], async function (ch, key) {
             , xLabelPadding: 3
             , xPadding: 5
             , label: 'Song History'
-    })
+        })
     return screen.render();
 });
 
@@ -198,12 +198,6 @@ screen.key(['S-c'], async function (ch, key) {
     updateTree();
     return screen.render();
 });
-
-
-
-
-
-
 
 // Set the window title, and render!
 screen.title = 'JourneyJourney'
