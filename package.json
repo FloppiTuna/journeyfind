@@ -12,8 +12,11 @@
     "jimp": "^0.16.1",
     "winston": "^3.8.0"
   },
+  "resolutions": {
+    "charm": "1.0.2"
+  },
   "scripts": {
-    "debug": "node --inspect=9229 index.js"
+    "debug": "node --inspect-brk=9229 --trace-warnings --redirect-warnings=warnings.txt index.js"
   },
   "type": "module"
 }
