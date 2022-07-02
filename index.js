@@ -155,11 +155,19 @@ screen.key(['h'], async function (ch, key) {
 screen.key(['q'], async function (ch, key) {
     // Clear the cache folder (holds the cover art images)
     fs.readdir('./cache/', (err, files) => {
-        for (const file of files) {
-            fs.unlink(path.join('./cache/', file), err => {
-                if (err) throw err;
-                return process.exit(0)
-            });
+        console.log(files)
+        if (files.length === 0) {
+            screen.destroy()
+            console.log('\x1b[36mThe cache was not wiped, as it was already empty.')
+            return process.exit(0)
+        } else {
+            console.log('\x1b[90mWiping the cache folder...')
+            for (const file of files) {
+                fs.unlink(path.join('./cache/', file), err => {
+                    screen.destroy()
+                    return process.exit(0)
+                });
+            }
         }
     });
 });
