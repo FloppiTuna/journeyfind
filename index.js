@@ -4,6 +4,7 @@ import jimp from 'jimp'
 import path from "path";
 import blessed from 'blessed'
 import contrib from 'blessed-contrib'
+import chalk from 'chalk'
 
 // Configuration
 let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the time remaining before the next song is played.
@@ -55,14 +56,14 @@ async function setCoverArt(artUrl, id) {
 
 function loop() {
     setTimeout(async () => {
-        log.log('\x1b[90mFetching current song...')
+        log.log(chalk.gray('Fetching current song...'))
         await axios.get(`https://api.ldrhub.com/2/?key=${apiKey}&method=Station.Engage.NowPlaying`)
             .then(async (r) => {
                 // Not needed but makes this all cleaner
                 let now_playing = r.data["Station.Engage.NowPlaying"].now_playing
                 // Check if now_playing is null (an ad may be playing, or the station is processing new player data)
                 if (now_playing === null) {
-                    log.log('\x1b[33mAn ad is playing, or the station is still processing. Waiting 15 seconds...')
+                    log.log(chalk.yellowBright('An ad is playing, or the station is still processing. Waiting 15 seconds...'))
                     // Wait 10 more seconds before retrying
                     pollingRate = 15000
                     return loop()
@@ -77,20 +78,19 @@ function loop() {
                     [now_playing.system_timestamp]: { name: now_playing.title }
                 })
                 updateTree();
-
                 // Add song to the history log
                 var songPlayedTimestamp = new Date(now_playing.system_timestamp * 1000).toLocaleString();
-                songlog.log(`\x1b[32m[\x1b[1m${songPlayedTimestamp}\x1b[0m\x1b[32m] - ${now_playing.title} - ${now_playing.artist}`)
+                songlog.log(chalk.green(`[${chalk.greenBright(songPlayedTimestamp)}] - ${now_playing.title} - ${now_playing.artist}`))
                 setCoverArt(now_playing.album_art, now_playing.id);
                 // Wait for the song to finish playing, and then scan again when the next one starts.
-                log.log(`\x1b[35mWaiting ${now_playing.seconds_left * 1000} (+ ${extraPollingDelay}) ms for the song to finish playing.`)
+                log.log(chalk.magentaBright(`Waiting ${now_playing.seconds_left * 1000} (+ ${extraPollingDelay}) ms for the song to finish playing.`))
                 pollingRate = (now_playing.seconds_left * 1000) + extraPollingDelay
                 loop()
             })
             .catch((e) => {
-                log.log(`\x1b[31mFailed to get the current playing song:`)
-                log.log(`\x1b[31m${e}`)
-                log.log(`\x1b[31mWaiting 30 seconds before trying again.`)
+                log.log(chalk.redBright(`Failed to get the current playing song:`))
+                log.log(chalk.redBright(`${e}`))
+                log.log(chalk.redBright(`Waiting 30 seconds before trying again.`))
                 pollingRate = 30000
                 loop()
             })
@@ -144,11 +144,11 @@ tree.focus()
 
 // Keyboard control for showing help information.
 screen.key(['h'], async function (ch, key) {
-    log.log('\x1b[36m=== JourneyJourney Help ===')
-    log.log(`\x1b[36m=== q - exit ===`)
-    log.log(`\x1b[36m=== c - clear logs ===`);
-    log.log(`\x1b[36m=== shift+c - clear tree ===`);
-    log.log(`\x1b[36m=== h - show this menu ===`);
+    log.log('')
+    log.log(chalk.cyan('=== q - exit ==='))
+    log.log(chalk.cyan('=== c - clear logs ==='));
+    log.log(chalk.cyan('=== shift+c - clear tree ==='));
+    log.log(chalk.cyan('=== h - show this menu ==='));
 });
 
 // Keyboard control for quitting.
@@ -158,10 +158,10 @@ screen.key(['q'], async function (ch, key) {
         console.log(files)
         if (files.length === 0) {
             screen.destroy()
-            console.log('\x1b[36mThe cache was not wiped, as it was already empty.')
+            console.log(chalk.cyan('The cache was not wiped, as it was already empty.'))
             return process.exit(0)
         } else {
-            console.log('\x1b[90mWiping the cache folder...')
+            log.log(chalk.gray('Wiping the cache folder...'))
             for (const file of files) {
                 fs.unlink(path.join('./cache/', file), err => {
                     screen.destroy()
@@ -212,11 +212,7 @@ screen.title = 'JourneyJourney'
 screen.render()
 
 // Print a few startup messages to the LOG box.
-log.log('\x1b[36m=== JourneyJourney - Press h for help ===')
-log.log(`\x1b[36m=== Started at \x1b[1m${new Date().toISOString()}\x1b[0m\x1b[36m ===`)
-log.log(`\x1b[36m=== Station: \x1b[1m${apiKey}\x1b[0m\x1b[36m ===`);
-// Additionally, a message indicating the beginning of the song history.
-songlog.log(`\x1b[36m=== Beginning of History ===`)
+log.log(chalk.cyan('=== JourneyJourney - Press h for help ==='))
 
 // Start the loop.
 loop()
