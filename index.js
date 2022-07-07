@@ -6,7 +6,6 @@ import blessed from 'blessed'
 import contrib from 'blessed-contrib'
 import chalk from 'chalk'
 // Configuration
-let treeStoreVer = 1 // If a read tree store file does not have a version matching this, raise a warning.
 let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the time remaining before the next song is played.
 let extraPollingDelay = 8000 // Extra time to add onto the timer for pulling the next song. Hacky solution to prevent songs from duping in the tree.
 let apiKey = "kglk" // LDRHub API Key. Usually the station's callsign.
