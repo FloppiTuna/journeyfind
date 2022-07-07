@@ -11,7 +11,7 @@
     "chalk": "^5.0.1",
     "flatted": "^3.2.6",
     "jimp": "^0.16.1",
-    "lowdb": "^3.0.0",
+    "mongodb": "^4.7.0",
     "winston": "^3.8.0"
   },
   "resolutions": {

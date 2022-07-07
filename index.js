@@ -5,20 +5,17 @@ import path from "path";
 import blessed from 'blessed'
 import contrib from 'blessed-contrib'
 import chalk from 'chalk'
-import { join, dirname } from 'path'
-import { Low, JSONFile } from 'lowdb'
-import { fileURLToPath } from 'url'
-
 // Configuration
 let treeStoreVer = 1 // If a read tree store file does not have a version matching this, raise a warning.
 let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the time remaining before the next song is played.
 let extraPollingDelay = 8000 // Extra time to add onto the timer for pulling the next song. Hacky solution to prevent songs from duping in the tree.
 let apiKey = "kglk" // LDRHub API Key. Usually the station's callsign.
 let artistList = {}
+let useDatabase = true // Set to true to use a database to store the tree.
+let databaseUri = "mongodb://localhost:27017/"
 
 // Functions
 function updateTree() {
-    console.log(artistList)
     tree.setData(
         {
             extended: true,
@@ -215,33 +212,7 @@ screen.key(['S-c'], async function (ch, key) {
 // Set the window title, and render!
 screen.title = 'JourneyJourney'
 screen.render()
-
-// Print a few startup messages to the LOG box.
 log.log(chalk.cyan('=== JourneyJourney - Press h for help ==='))
-
-// Initialize the database
-const __dirname = dirname(fileURLToPath(import.meta.url));
-// Use JSON file for storage
-const file = join(__dirname, 'treestore.json')
-const adapter = new JSONFile(file)
-const db = new Low(adapter)
-// Read existing data
-await db.read()
-
-// If the database file doesn't exist, set the data to be a default empty object
-db.data ||= {
-    "version": treeStoreVer,
-    "tree": {}
-}; await db.write()
-
-// Check version of tree store.
-if (db.data.version !== treeStoreVer) {
-    log.log(chalk.yellowBright(`The existing tree store file is of version ${db.data.version}, but we use ${treeStoreVer}.`))
-    log.log(chalk.yellowBright(`To protect the integrity of the tree store file, it will NOT be loaded.`))
-} else if (db.data.tree) {
-    // artistList = db.data.tree;
-    // updateTree()
-}
 
 // Start the loop.
 loop()
