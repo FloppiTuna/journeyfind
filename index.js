@@ -6,13 +6,21 @@ import blessed from 'blessed'
 import contrib from 'blessed-contrib'
 import chalk from 'chalk'
 import { MongoClient } from 'mongodb';
+import DiscordRPC from 'discord-rpc';
 const secrets = JSON.parse(fs.readFileSync('./secrets.json'));
 
 // Configuration
 let pollingRate = 1000 // DO NOT CHANGE THIS! This is meant to be changed to the time remaining before the next song is played.
 let extraPollingDelay = 8000 // Extra time to add onto the timer for pulling the next song. Hacky solution to prevent songs from duping in the tree.
 let apiKey = "kglk" // LDRHub API Key. Usually the station's callsign.
+let rpcClientId = '997179375105613864'; // The Discord Client ID to use with Rich Presence.
+
+// Leave this alone.
 let artistList = {}
+let isPresenceActive = false;
+
+// Create the RPC client.
+const rpc = new DiscordRPC.Client({ transport: 'ipc' });
 
 // Create the screen, and the grid for it
 let screen = blessed.screen()
@@ -214,6 +222,22 @@ let database = await MongoClient.connect(secrets.mongoUri, { useNewUrlParser: tr
         log.log(chalk.redBright(chalk.italic(`Tree data will not be saved!`)))
     })
 
+// Initialize Discord RPC.
+log.log(chalk.gray('Initializing rich presence...'))
+await rpc.login({ clientId: rpcClientId })
+    .then(() => {
+        log.log(chalk.greenBright('Successfully logged into Discord RPC!'))
+        isPresenceActive = true
+        rpc.setActivity({
+            details: 'Waiting for a song...',
+            state: `Listening on ${apiKey.toUpperCase()}`,
+            instance: false,
+        });
+    }).catch(e => {
+        log.log(chalk.redBright(`Failed to log into Discord RPC:`))
+        log.log(chalk.redBright(`${e}`))
+    })
+
 function loop() {
     setTimeout(async () => {
         log.log(chalk.gray('Fetching current song...'))
@@ -224,6 +248,15 @@ function loop() {
                 // Check if now_playing is null (an ad may be playing, or the station is processing new player data)
                 if (now_playing === null) {
                     log.log(chalk.yellowBright('An ad is playing, or the station is still processing. Waiting 15 seconds...'))
+                    // Set presence.
+                    if (isPresenceActive === true) {
+                        rpc.setActivity({
+                            details: `Waiting for ads to finish...`,
+                            state: `Live on ${apiKey.toUpperCase()}`,
+                            instance: false,
+                        });
+                    }
+
                     // Wait 10 more seconds before retrying
                     pollingRate = 15000
                     return loop()
@@ -238,7 +271,7 @@ function loop() {
                     [now_playing.system_timestamp]: { name: now_playing.title }
                 })
                 // Insert a record into the database
-                database.db('jj').collection('songs').find({ npTimestamp: now_playing.system_timestamp }).toArray(function(err, result) {
+                database.db('jj').collection('songs').find({ npTimestamp: now_playing.system_timestamp }).toArray(function (err, result) {
                     if (err) throw err;
                     if (result.length !== 0) {
                         log.log(chalk.gray('This song appearance already exists in the database.'))
@@ -265,6 +298,14 @@ function loop() {
                 var songPlayedTimestamp = new Date(now_playing.system_timestamp * 1000).toLocaleString();
                 songlog.log(chalk.green(`[${chalk.greenBright(songPlayedTimestamp)}] - ${now_playing.title} - ${now_playing.artist}`))
                 setCoverArt(now_playing.album_art, now_playing.id);
+                // Set presence.
+                if (isPresenceActive === true) {
+                    rpc.setActivity({
+                        details: `${now_playing.title} by ${now_playing.artist}`,
+                        state: `Live on ${apiKey.toUpperCase()}`,
+                        instance: false,
+                    });
+                }
                 // Wait for the song to finish playing, and then scan again when the next one starts.
                 log.log(chalk.magentaBright(`Waiting ${now_playing.seconds_left * 1000} (+ ${extraPollingDelay}) ms for the song to finish playing.`))
                 pollingRate = (now_playing.seconds_left * 1000) + extraPollingDelay
