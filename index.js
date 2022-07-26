@@ -21,6 +21,7 @@ let isPresenceActive = false;
 
 // Create the RPC client.
 const rpc = new DiscordRPC.Client({ transport: 'ipc' });
+const startTimestamp = new Date()
 
 // Create the screen, and the grid for it
 let screen = blessed.screen()
@@ -232,6 +233,7 @@ await rpc.login({ clientId: rpcClientId })
             details: 'Waiting for a song...',
             state: `Listening on ${apiKey.toUpperCase()}`,
             instance: false,
+            startTimestamp
         });
     }).catch(e => {
         log.log(chalk.redBright(`Failed to log into Discord RPC:`))
@@ -254,6 +256,7 @@ function loop() {
                             details: `Waiting for ads to finish...`,
                             state: `Live on ${apiKey.toUpperCase()}`,
                             instance: false,
+                            startTimestamp
                         });
                     }
 
@@ -304,6 +307,7 @@ function loop() {
                         details: `${now_playing.title} by ${now_playing.artist}`,
                         state: `Live on ${apiKey.toUpperCase()}`,
                         instance: false,
+                        startTimestamp
                     });
                 }
                 // Wait for the song to finish playing, and then scan again when the next one starts.
