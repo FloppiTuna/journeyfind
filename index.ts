@@ -7,36 +7,35 @@ let client = new MongoClient(config.database.mongoConnectionString);
 client.connect();
 let db = client.db('jj').collection('kglk');
 
-
-axios.request({
-    url: 'https://quuit.com/quu/mobile/qipplaylist',
-    params: {
-        stationid: config.tracking.stationId,
-        type: 'json'
-    }
-}).then((res) => {
-    res.data.playlist.forEach(async (item: any) => {
-        let readableDate = new Date(item.start).toUTCString();
-
-        if (await db.findOne({ id: item.playlistid })) {
-            return console.log(`Not adding ${item.title}`);
-        } else {
-            console.log(`Adding ${item.title} to database`);
-            return await db.insertOne({
-                id: item.playlistid,
-                title: item.title,
-                artist: item.artist,
-                readableDate: readableDate
-            });
+async function pullData() {
+    axios.request({
+        url: 'https://quuit.com/quu/mobile/qipplaylist',
+        params: {
+            stationid: config.tracking.stationId,
+            type: 'json'
         }
+    }).then(async (res) => {
+        console.log(`Got ${res.data.playlist.length} songs`);
 
+        await res.data.playlist.forEach(async (item: any) => {
+            let readableDate = new Date(item.start).toUTCString();
+
+            if (await db.findOne({ id: item.playlistid })) {
+                // TODO: Song exists in MongoDB, but is this a new playtime?
+
+                return console.log(`Skipping ${item.title} (${item.playlistid})`);
+            } else {
+                // Song doesn't exist in MongoDB, so add it along with this playtime
+                console.log(`Adding ${item.title}`);
+                return await db.insertOne({
+                    id: item.playlistid,
+                    title: item.title,
+                    artist: item.artist,
+                    playtimes: [ readableDate ]
+                });
+            }
+        });
     });
+}
 
-    console.log(`Total: ${res.data.playlist.length} songs`);
-})
-
-
-
-// setInterval(() => {
-//     console.log('Pulling playlist');
-// }, 1000)
+await pullData();
