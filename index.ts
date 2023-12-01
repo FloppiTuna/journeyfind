@@ -18,7 +18,7 @@ async function pullData() {
     }).then(async (res) => {
         console.log(chalk.grey(`got ${res.data.playlist.length} songs back from quuit`));
 
-        await res.data.playlist.forEach(async (item: any) => {
+        res.data.playlist.forEach(async (item: any) => {
             let readableDate = new Date(item.start).toUTCString();
             let dbEntry = await db.findOne({ id: item.playlistid });
 
@@ -39,7 +39,7 @@ async function pullData() {
             } else {
                 // Song doesn't exist in MongoDB, so add it along with this playtime
                 console.log(chalk.yellowBright(`discovered "${item.title}" (${item.playlistid})`));
-                return await db.insertOne({
+                return db.insertOne({
                     id: item.playlistid,
                     title: item.title,
                     artist: item.artist,
