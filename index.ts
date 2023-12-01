@@ -15,18 +15,29 @@ async function pullData() {
             type: 'json'
         }
     }).then(async (res) => {
-        console.log(`Got ${res.data.playlist.length} songs`);
+        console.log(`got ${res.data.playlist.length} songs back from quuit`);
 
         await res.data.playlist.forEach(async (item: any) => {
             let readableDate = new Date(item.start).toUTCString();
+            let dbEntry = await db.findOne({ id: item.playlistid });
 
-            if (await db.findOne({ id: item.playlistid })) {
-                // TODO: Song exists in MongoDB, but is this a new playtime?
+            if (dbEntry) {
+                // Song exists in MongoDB, but is this a new playtime?
+                if (dbEntry.playtimes.includes(readableDate)) {
+                    // We've seen this one before, skip it
+                    return console.log(`familiar playtime for ${item.title} (${item.playlistid})`);
+                } else {
+                    // This is a brand new occourance, add it to the song's document
+                    console.log(`new playtime for ${item.title} (${item.playlistid}): ${readableDate}`)
+                    return db.updateOne(
+                        { id: item.playlistid },
+                        { $push: { playtimes: readableDate } },
+                    )
+                }
 
-                return console.log(`Skipping ${item.title} (${item.playlistid})`);
             } else {
                 // Song doesn't exist in MongoDB, so add it along with this playtime
-                console.log(`Adding ${item.title}`);
+                console.log(`new song ${item.title} (${item.playlistid})`);
                 return await db.insertOne({
                     id: item.playlistid,
                     title: item.title,
@@ -39,3 +50,6 @@ async function pullData() {
 }
 
 await pullData();
+
+// Run every 10 minutes
+setInterval(pullData, 600000);
