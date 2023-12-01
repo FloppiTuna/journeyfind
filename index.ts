@@ -3,10 +3,20 @@ import axios from 'axios'
 import { MongoClient } from 'mongodb'
 import chalk from 'chalk';
 
+let collection = config.database.useStationIdAsCollectionName ? config.tracking.stationId.toString() : config.tracking.callsign;
+
 // Initialize MongoDB connection
 let client = new MongoClient(config.database.mongoConnectionString);
 client.connect();
-let db = client.db('jj').collection('kglk');
+let db = client.db('radio').collection(collection);
+
+console.log(`
+${chalk.greenBright('Radio Tracker')}
+${chalk.grey('---------------------')}
+${chalk.grey('Station:')} ${config.tracking.stationId} (${config.tracking.callsign})
+${chalk.grey('MongoDB Collection:')} ${collection}
+`)
+
 
 async function pullData() {
     axios.request({
