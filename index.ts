@@ -11,7 +11,7 @@ client.connect();
 let db = client.db('radio').collection(collection);
 
 console.log(`
-${chalk.greenBright('Radio Tracker')}
+${chalk.greenBright('Kepler')}
 ${chalk.grey('---------------------')}
 ${chalk.grey('Station:')} ${config.tracking.stationId} (${config.tracking.callsign})
 ${chalk.grey('MongoDB Collection:')} ${collection}

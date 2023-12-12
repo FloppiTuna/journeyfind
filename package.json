@@ -1,5 +1,5 @@
 {
-  "name": "journeyfind",
+  "name": "kepler",
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
