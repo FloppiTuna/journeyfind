@@ -1,5 +1,5 @@
 {
-  "name": "kepler",
+  "name": "galileo",
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
