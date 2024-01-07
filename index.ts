@@ -64,4 +64,4 @@ async function pullData() {
 await pullData();
 
 // Run every 10 minutes
-setInterval(pullData, 600000);
+setInterval(pullData, 1800000);
