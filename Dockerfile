@@ -21,9 +21,6 @@ FROM base AS prerelease
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-# force colors
-ENV FORCE_COLOR=1
-
 # copy production dependencies and source code into final image
 FROM base AS release
 COPY --from=install /temp/prod/node_modules node_modules
@@ -35,5 +32,6 @@ RUN mkdir -p /usr/src/app/config
 COPY ./config/config.json /usr/src/app/config/config.json
 
 # run the app
+ENV FORCE_COLOR=1
 EXPOSE 3000/tcp
 ENTRYPOINT [ "bun", "run", "index.ts" ]
