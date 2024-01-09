@@ -21,8 +21,8 @@ FROM base AS prerelease
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-# production
-ENV NODE_ENV=production
+# force colors
+ENV FORCE_COLOR=1
 
 # copy production dependencies and source code into final image
 FROM base AS release
