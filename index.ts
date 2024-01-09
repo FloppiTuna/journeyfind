@@ -20,6 +20,8 @@ ${chalk.grey('MongoDB Collection:')} ${collection}
 
 
 async function pullData() {
+    console.log(chalk.grey('fetching playlist from quuit'));
+    
     axios.request({
         url: 'https://quuit.com/quu/mobile/qipplaylist',
         params: {
