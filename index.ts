@@ -1,4 +1,4 @@
-import config from './config.json'
+import config from './config/config.json'
 import axios from 'axios'
 import { MongoClient } from 'mongodb'
 import chalk from 'chalk';

@@ -175,4 +175,6 @@ dist
 .DS_Store
 
 # Project files
-config.json
+config
+
+config/config.json
