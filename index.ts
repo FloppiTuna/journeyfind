@@ -4,24 +4,73 @@ import { MongoClient } from 'mongodb'
 import chalk from 'chalk';
 import moment from 'moment';
 
-let collection = config.database.useStationIdAsCollectionName ? config.tracking.stationId.toString() : config.tracking.callsign;
-
+// let collection = config.database.useStationIdAsCollectionName ? config.tracking.stationId.toString() : config.tracking.callsign;
 // Initialize MongoDB connection
 let client = new MongoClient(config.database.mongoConnectionString);
 client.connect();
-let db = client.db('radio').collection(collection);
+let db = client.db('radio');
+
+let stations = config.tracking.stations;
+
 
 console.log(`
 ${chalk.greenBright('Galileo')}
 ${chalk.grey('---------------------')}
-${chalk.grey('Station:')} ${config.tracking.stationId} (${config.tracking.callsign})
-${chalk.grey('MongoDB Collection:')} ${collection}
+${chalk.cyan('Configured stations:')}
 `)
 
+stations.forEach((station: any) => {
+    console.log(`- ${chalk.greenBright(station.callsign)} (${chalk.yellowBright(`${station.provider}, ${station.id}`)})`);
+});
+
+console.log(`${chalk.italic(`Began tracking at ${moment().format(`YYYY-MM-DD HH:mm:ss a`)}`)}\n`);
 
 async function pullData() {
-    console.log(chalk.grey('fetching playlist from quuit'));
+    console.log(chalk.grey(`Pulling data - ${moment().format('YYYY-MM-DD HH:mm:ss a')}`));
     
+    stations.forEach((station: any) => {
+        let collection = db.collection(station.id.toString());
+        console.log(`${chalk.greenBright(station.callsign)} (${chalk.yellowBright(`${station.provider}, ${station.id}`)})`);
+        
+        if (station.provider === 'quuit') {
+            axios.request({
+                url: 'https://quuit.com/quu/mobile/qipplaylist',
+                params: {
+                    stationid: station.id,
+                    type: 'json'
+                }
+            }).then(res => {
+                res.data.playlist.forEach(async (song: any) => {
+                    let readableDate = moment.utc(song.start).format('YYYY-MM-DD HH:mm:ss a');
+                    let dbEntry = await collection.findOne({ id: song.playlistid });
+                    
+                    if (dbEntry) {
+                        // Song exists in MongoDB, but is this a new playtime?
+                        if (dbEntry.playtimes.includes(readableDate)) {
+                            return; // We've seen this one before, skip it
+                        } else {
+                            // This is a brand new occourence, add it to the song's document
+                            console.log(chalk.blueBright(`Spotted "${song.title}" (${song.playlistid}) at ${readableDate}`))
+                            return collection.updateOne(
+                                { id: song.playlistid },
+                                { $push: { playtimes: readableDate } },
+                            )
+                        }
+                    } else {
+                        console.log(chalk.yellowBright(`Found new song "${song.title}" (${song.playlistid}) at ${readableDate}!`));
+                        return collection.insertOne({
+                            id: song.playlistid,
+                            title: song.title,
+                            artist: song.artist,
+                            playtimes: [ readableDate ]
+                        });
+                    }
+                })
+            })
+        }
+    });
+
+    return;
     axios.request({
         url: 'https://quuit.com/quu/mobile/qipplaylist',
         params: {
@@ -29,8 +78,6 @@ async function pullData() {
             type: 'json'
         }
     }).then(async (res) => {
-        console.log(chalk.grey(`got ${res.data.playlist.length} songs back from quuit`));
-
         res.data.playlist.forEach(async (item: any) => {
             let readableDate = moment.utc(item.start).format('YYYY-MM-DD HH:mm:ss a');
             let dbEntry = await db.findOne({ id: item.playlistid });
