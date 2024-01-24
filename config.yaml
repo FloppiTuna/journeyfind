@@ -1,0 +1,11 @@
+name: "Galileo"
+description: "Radio station tracking software"
+version: "1.0.0"
+slug: "galileo"
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386

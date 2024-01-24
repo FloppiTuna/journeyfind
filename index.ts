@@ -32,17 +32,17 @@ async function pullData() {
         let collection = db.collection(station.id.toString());
         console.log(`${chalk.greenBright(station.callsign)} (${chalk.yellowBright(`${station.provider}, ${station.id}`)})`);
         
-        if (station.provider === 'quuit') {
+        if (station.provider === 'cmg') {
             axios.request({
-                url: 'https://quuit.com/quu/mobile/qipplaylist',
+                url: `https://lsp-prod.cmg.com/api/v3/histories/${station.url}`,
                 params: {
-                    stationid: station.id,
+                    stationid: station.url,
                     type: 'json'
                 }
             }).then(res => {
-                res.data.playlist.forEach(async (song: any) => {
-                    let readableDate = moment.utc(song.start).format('YYYY-MM-DD HH:mm:ss a');
-                    let dbEntry = await collection.findOne({ id: song.playlistid });
+                res.data.forEach(async (song: any) => {
+                    let readableDate = moment.utc(song.timestamp).format('YYYY-MM-DD HH:mm:ss a');
+                    let dbEntry = await collection.findOne({ id: song.id });
                     
                     if (dbEntry) {
                         // Song exists in MongoDB, but is this a new playtime?
@@ -50,18 +50,20 @@ async function pullData() {
                             return; // We've seen this one before, skip it
                         } else {
                             // This is a brand new occourence, add it to the song's document
-                            console.log(chalk.blueBright(`Spotted "${song.title}" (${song.playlistid}) at ${readableDate}`))
+                            console.log(chalk.blueBright(`Spotted ${song.category}: "${song.title}" (${song.id}) at ${readableDate}`))
                             return collection.updateOne(
-                                { id: song.playlistid },
+                                { id: song.id },
                                 { $push: { playtimes: readableDate } },
                             )
                         }
                     } else {
-                        console.log(chalk.yellowBright(`Found new song "${song.title}" (${song.playlistid}) at ${readableDate}!`));
+                        console.log(chalk.yellowBright(`Discovered ${song.category}: "${song.title}" (${song.id}) at ${readableDate}!`));
                         return collection.insertOne({
-                            id: song.playlistid,
+                            id: song.id,
                             title: song.title,
                             artist: song.artist,
+                            artistMetadata: song.artists,
+                            type: song.category,
                             playtimes: [ readableDate ]
                         });
                     }
@@ -71,46 +73,9 @@ async function pullData() {
     });
 
     return;
-    axios.request({
-        url: 'https://quuit.com/quu/mobile/qipplaylist',
-        params: {
-            stationid: config.tracking.stationId,
-            type: 'json'
-        }
-    }).then(async (res) => {
-        res.data.playlist.forEach(async (item: any) => {
-            let readableDate = moment.utc(item.start).format('YYYY-MM-DD HH:mm:ss a');
-            let dbEntry = await db.findOne({ id: item.playlistid });
-
-            if (dbEntry) {
-                // Song exists in MongoDB, but is this a new playtime?
-                if (dbEntry.playtimes.includes(readableDate)) {
-                    // We've seen this one before, skip it
-                    return console.log(chalk.grey(`familiar playtime for "${item.title}" (${item.playlistid}): ${readableDate}`));
-                } else {
-                    // This is a brand new occourance, add it to the song's document
-                    console.log(chalk.greenBright(`spotted "${item.title}" (${item.playlistid}): ${readableDate}`))
-                    return db.updateOne(
-                        { id: item.playlistid },
-                        { $push: { playtimes: readableDate } },
-                    )
-                }
-
-            } else {
-                // Song doesn't exist in MongoDB, so add it along with this playtime
-                console.log(chalk.yellowBright(`discovered "${item.title}" (${item.playlistid}): ${readableDate}`));
-                return db.insertOne({
-                    id: item.playlistid,
-                    title: item.title,
-                    artist: item.artist,
-                    playtimes: [ readableDate ]
-                });
-            }
-        });
-    });
 }
 
 await pullData();
 
-// Run every 10 minutes
-setInterval(pullData, 900000);
+// Run every 5 minutes
+setInterval(pullData, 5 * 60 * 1000);
