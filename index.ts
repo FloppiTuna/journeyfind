@@ -41,12 +41,14 @@ async function pullData() {
                 }
             }).then(res => {
                 res.data.forEach(async (song: any) => {
+                    console.log(chalk.grey(`running over ${song.title} by ${song.artist}`));
                     let readableDate = moment.utc(song.timestamp).format('YYYY-MM-DD HH:mm:ss a');
                     let dbEntry = await collection.findOne({ id: song.id });
                     
                     if (dbEntry) {
                         // Song exists in MongoDB, but is this a new playtime?
                         if (dbEntry.playtimes.includes(readableDate)) {
+                            console.log(chalk.grey(`Ignoring ${song.category}: "${song.title}" (${song.id}) because ${readableDate} has already been logged`));
                             return; // We've seen this one before, skip it
                         } else {
                             // This is a brand new occourence, add it to the song's document
