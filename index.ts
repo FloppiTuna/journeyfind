@@ -43,23 +43,23 @@ async function pullData() {
                 res.data.forEach(async (song: any) => {
                     console.log(chalk.grey(`running over ${song.title} by ${song.artist}`));
                     let readableDate = moment.utc(song.timestamp).format('YYYY-MM-DD HH:mm:ss a');
-                    let dbEntry = await collection.findOne({ id: song.id });
+                    let dbEntry = await collection.findOne({ title: song.title, artist: song.artist });
                     
                     if (dbEntry) {
                         // Song exists in MongoDB, but is this a new playtime?
                         if (dbEntry.playtimes.includes(readableDate)) {
-                            console.log(chalk.grey(`Ignoring ${song.category}: "${song.title}" (${song.id}) because ${readableDate} has already been logged`));
+                            console.log(chalk.grey(`Ignoring ${song.category}: "${song.title}" because ${readableDate} has already been logged`));
                             return; // We've seen this one before, skip it
                         } else {
                             // This is a brand new occourence, add it to the song's document
-                            console.log(chalk.blueBright(`Spotted ${song.category}: "${song.title}" (${song.id}) at ${readableDate}`))
+                            console.log(chalk.blueBright(`Spotted ${song.category}: "${song.title}" at ${readableDate}`))
                             return collection.updateOne(
                                 { id: song.id },
                                 { $push: { playtimes: readableDate } },
                             )
                         }
                     } else {
-                        console.log(chalk.yellowBright(`Discovered ${song.category}: "${song.title}" (${song.id}) at ${readableDate}!`));
+                        console.log(chalk.yellowBright(`Discovered ${song.category}: "${song.title}" at ${readableDate}!`));
                         return collection.insertOne({
                             id: song.id,
                             title: song.title,
