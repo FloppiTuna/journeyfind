@@ -40,32 +40,31 @@ async function pullData() {
                     type: 'json'
                 }
             }).then(res => {
-                res.data.forEach(async (song: any) => {
-                    console.log(chalk.grey(`running over ${song.title} by ${song.artist}`));
-                    let readableDate = moment.utc(song.timestamp).format('YYYY-MM-DD HH:mm:ss a');
-                    let dbEntry = await collection.findOne({ title: song.title, artist: song.artist });
+                res.data.forEach(async (event: any) => {
+                    let readableDate = moment.utc(event.timestamp).format('YYYY-MM-DD HH:mm:ss a');
+                    let dbEntry = await collection.findOne({ title: event.title, artist: event.artist });
                     
                     if (dbEntry) {
-                        // Song exists in MongoDB, but is this a new playtime?
+                        // Event exists in MongoDB, but is this a new playtime?
                         if (dbEntry.playtimes.includes(readableDate)) {
-                            console.log(chalk.grey(`Ignoring ${song.category}: "${song.title}" because ${readableDate} has already been logged`));
+                            console.log(chalk.grey(`Ignoring ${event.category} "${event.title}": ${readableDate} has already been logged`));
                             return; // We've seen this one before, skip it
                         } else {
-                            // This is a brand new occourence, add it to the song's document
-                            console.log(chalk.blueBright(`Spotted ${song.category}: "${song.title}" at ${readableDate}`))
+                            // This is a brand new occourance, add it to the song's document
+                            console.log(chalk.greenBright(`Spotted ${event.category} "${event.title}": ${readableDate}`))
                             return collection.updateOne(
-                                { id: song.id },
+                                { title: event.title, artist: event.artist },
                                 { $push: { playtimes: readableDate } },
                             )
                         }
                     } else {
-                        console.log(chalk.yellowBright(`Discovered ${song.category}: "${song.title}" at ${readableDate}!`));
+                        console.log(chalk.yellowBright(`Discovered ${event.category} "${event.title}": ${readableDate}`));
                         return collection.insertOne({
-                            id: song.id,
-                            title: song.title,
-                            artist: song.artist,
-                            artistMetadata: song.artists,
-                            type: song.category,
+                            title: event.title,
+                            artist: event.artist,
+                            artistMetadata: event.artists,
+                            type: event.category,
+                            rawType: event.categoryRaw, // This seems to always be "MUS" or "QQQ" (music or advertisement), but we'll keep it around just in case
                             playtimes: [ readableDate ]
                         });
                     }
